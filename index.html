@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maratona Pokémon</title>
+<meta name="description" content="Traccia il tuo percorso attraverso le generazioni Pokémon">
+<meta name="theme-color" content="#E8384F">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#131316; --card:#1e1e23; --card-hover:#25252b; --border:#323138;
+    --text:#F2EEE6; --muted:#8f8b97; --red:#E8384F;
+    --done:#3FB27F; --progress:#F0B429; --pending:#6b6873;
+    --mono:'JetBrains Mono',monospace; --disp:'Press Start 2P',cursive; --body:'Outfit',sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  body{padding-bottom:84px;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:#3a3940;border-radius:3px;}
+  button{font-family:var(--body);}
+  mark{background:rgba(240,180,41,.4);color:inherit;border-radius:3px;padding:0 1px;}
+  .wrap{max-width:640px;margin:0 auto;padding:20px 16px 40px;}
+  header{margin-bottom:20px;}
+  .title-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .pokeball{width:22px;height:22px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(var(--red) 50%, var(--text) 50%);
+    border:2px solid var(--text); box-shadow:inset 0 0 0 2px #16161a;}
+  h1{font-family:var(--disp);font-size:13px;line-height:1.5;letter-spacing:.5px;margin:0;}
+  .subtitle{color:var(--muted);font-size:13px;margin:6px 0 0 32px;}
+
+  .search-bar{position:relative;margin-bottom:16px;}
+  .search-bar input{width:100%;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;color:var(--text);font-size:14px;padding:10px 34px 10px 14px;font-family:var(--body);}
+  .search-bar input:focus{outline:2px solid var(--red);outline-offset:1px;}
+  .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;display:none;}
+  .search-results-note{font-size:11px;color:var(--muted);margin:-10px 0 14px 2px;}
+
+  .progress-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;}
+  .progress-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .progress-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  .progress-count{font-family:var(--mono);font-size:15px;font-weight:600;}
+  .progress-count span{color:var(--muted);font-size:12px;font-weight:400;}
+  .progress-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#2a2a30;}
+  .progress-bar .done{background:var(--done);transition:width .3s;}
+  .progress-bar .cur{background:var(--progress);transition:width .3s;}
+  .legend{display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .legend .pct{margin-left:auto;font-family:var(--mono);}
+
+  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 0;
+    border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);
+    font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+  .tab-btn.active{border-color:var(--red);background:rgba(232,56,79,.12);color:var(--text);}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;transition:border-color .15s,opacity .15s;}
+  .card.dragging{border-color:var(--red);opacity:.7;}
+  .card-inner{display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 8px;}
+  .grip{touch-action:none;cursor:grab;background:none;border:none;color:var(--muted);padding:6px 2px;margin-top:2px;}
+  .card-body{flex:1;min-width:0;}
+  .badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .gen-badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:5px;font-weight:600;}
+  .place{font-size:12px;color:var(--muted);}
+  .game-name{font-size:15px;font-weight:700;margin:4px 0 8px;}
+  .status-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .status-btn{display:flex;align-items:center;gap:5px;font-size:11px;padding:5px 9px;border-radius:999px;
+    border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;}
+  .status-btn.active{font-weight:600;}
+  .notes-toggle{display:flex;align-items:center;gap:4px;margin-top:10px;background:none;border:none;
+    color:var(--muted);font-size:12px;cursor:pointer;padding:0;}
+  .notes-toggle svg{transition:transform .15s;}
+  .notes-toggle.open svg{transform:rotate(180deg);}
+  .notes-area{width:100%;margin-top:8px;background:#17171b;border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:var(--body);font-size:13px;padding:8px;resize:vertical;display:none;}
+  .notes-area.open{display:block;}
+
+  .route-wrap{position:relative;}
+  .route-marker{position:absolute;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;z-index:2;transform:translate(-50%,0);}
+  .route-marker.pulse{animation:pulseRing 2s infinite;}
+  @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(240,180,41,.55);}70%{box-shadow:0 0 0 8px rgba(240,180,41,0);}100%{box-shadow:0 0 0 0 rgba(240,180,41,0);}}
+  .route-label{position:absolute;top:-6px;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:8px 10px;max-width:62%;}
+  .route-gen{font-family:var(--mono);font-size:9px;font-weight:700;}
+  .route-name{font-size:13px;font-weight:700;margin:2px 0;}
+  .route-status{font-size:10px;font-weight:600;}
+  .route-notes{font-size:11px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  .reset-btn{display:flex;align-items:center;gap:6px;margin:28px auto 0;background:none;border:none;
+    color:var(--muted);font-size:12px;cursor:pointer;}
+
+  .sync-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));z-index:50;}
+  .sync-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#26262c;border:1px solid var(--border);
+    color:var(--text);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+  .sync-btn:active{background:#2c2c33;}
+  .sync-status{width:9px;height:9px;border-radius:50%;background:var(--pending);flex-shrink:0;transition:background .2s;}
+  .sync-status.ok{background:var(--done);}
+  .sync-status.err{background:var(--red);}
+  .sync-status.busy{background:var(--progress);animation:blink 1s infinite;}
+  @keyframes blink{50%{opacity:.3;}}
+  .sync-meta{font-size:10px;color:var(--muted);font-family:var(--mono);position:absolute;top:-16px;left:16px;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:16px 16px 0 0;
+    width:100%;max-width:640px;padding:20px 18px calc(20px + env(safe-area-inset-bottom));}
+  @media(min-width:660px){.modal-backdrop{align-items:center;} .modal{border-radius:16px;}}
+  .modal h2{font-size:15px;margin:0 0 4px;}
+  .modal p{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.5;}
+  .modal label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
+  .modal input[type=password],.modal input[type=text]{width:100%;background:#17171b;border:1px solid var(--border);
+    border-radius:8px;color:var(--text);font-size:14px;padding:10px;font-family:var(--mono);margin-bottom:14px;}
+  .modal-actions{display:flex;gap:8px;}
+  .modal-actions button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-primary{background:var(--red);border-color:var(--red)!important;color:#fff;}
+  .btn-ghost{background:transparent;color:var(--muted);}
+  .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);cursor:pointer;}
+  .modal{position:relative;}
+  .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#26262c;border:1px solid var(--border);
+    color:var(--text);font-size:12px;padding:8px 14px;border-radius:999px;z-index:110;opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;}
+  .toast.show{opacity:1;bottom:88px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-row">
+      <span class="pokeball"></span>
+      <h1>MARATONA POKÉMON</h1>
+    </div>
+    <p class="subtitle">Il viaggio attraverso le generazioni, un badge alla volta.</p>
+  </header>
+
+  <div class="search-bar">
+    <input id="searchInput" type="text" placeholder="Cerca per titolo, regione o nota...">
+    <button class="search-clear" id="searchClear" aria-label="Cancella ricerca">✕</button>
+  </div>
+  <div class="search-results-note" id="searchNote" style="display:none;"></div>
+
+  <div class="progress-card">
+    <div class="progress-top">
+      <span class="progress-label">Progresso</span>
+      <span class="progress-count"><span id="doneCount">0</span>/<span id="totalCount">0</span> <span>completati</span></span>
+    </div>
+    <div class="progress-bar"><div class="done" id="barDone"></div><div class="cur" id="barCur"></div></div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--done)"></span>Completato</span>
+      <span><span class="dot" style="background:var(--progress)"></span>In corso</span>
+      <span><span class="dot" style="background:var(--pending)"></span>Da iniziare</span>
+      <span class="pct" id="pctText">0%</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="list">☰ Lista</button>
+    <button class="tab-btn" data-tab="route">🗺 Percorso</button>
+  </div>
+
+  <div id="listView"></div>
+  <div id="routeView" class="route-wrap" style="display:none;"></div>
+
+  <button class="reset-btn" id="resetBtn">↺ Ripristina progressi</button>
+</div>
+
+<div class="sync-bar">
+  <button class="sync-btn" id="pullBtn" aria-label="Scarica dati da GitHub">⬇ Pull</button>
+  <span class="sync-status" id="syncStatus" title="Stato sincronizzazione"></span>
+  <button class="sync-btn" id="pushBtn" aria-label="Carica dati su GitHub">⬆ Push</button>
+  <button class="sync-btn" id="setupBtn" aria-label="Impostazioni sincronizzazione">⚙</button>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <h2>Sincronizzazione GitHub</h2>
+    <p>Incolla un Personal Access Token con scope <b>gist</b>. Viene salvato solo nel localStorage di questo browser, mai inviato altrove se non a api.github.com.</p>
+    <label for="tokenInput">Personal Access Token</label>
+    <input type="password" id="tokenInput" placeholder="ghp_..." autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn-ghost" id="tokenClearBtn">Rimuovi token</button>
+      <button class="btn-primary" id="tokenSaveBtn">Salva e collega</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- config ----------
+  var GIST_FILENAME = "pokemon_marathon_db.json";
+  var LS_GAMES = "pkmn_marathon_games_v1";
+  var LS_TOKEN = "pkmn_marathon_gh_token";
+  var LS_GIST_ID = "pkmn_marathon_gist_id";
+
+  var STATUS_META = {
+    da_iniziare: {label:"Da iniziare", color:"var(--pending)"},
+    in_corso:    {label:"In corso",    color:"var(--progress)"},
+    completato:  {label:"Completato",  color:"var(--done)"}
+  };
+
+  var DEFAULT_GAMES = [
+    {id:"firered",name:"Pokémon FireRed",gen:"GEN 1",place:"Kanto (remake)",status:"completato",notes:"",color:"#E8384F"},
+    {id:"heartgold",name:"Pokémon HeartGold",gen:"GEN 2",place:"Johto (remake)",status:"da_iniziare",notes:"",color:"#D4A93B"},
+    {id:"diamond",name:"Pokémon Diamond",gen:"GEN 4",place:"Sinnoh",status:"in_corso",notes:"Infernape Lv40, squadra a metà",color:"#4C8FD9"},
+    {id:"legends_arceus",name:"Pokémon Legends: Arceus",gen:"GEN 4",place:"Hisui (spin-off)",status:"in_corso",notes:"Appena iniziato",color:"#9C7A4E"},
+    {id:"emerald",name:"Pokémon Emerald",gen:"GEN 3",place:"Hoenn",status:"da_iniziare",notes:"",color:"#3FA35E"},
+    {id:"bw",name:"Pokémon Black/White",gen:"GEN 5",place:"Unima",status:"da_iniziare",notes:"",color:"#8A8894"},
+    {id:"xy",name:"Pokémon X/Y",gen:"GEN 6",place:"Kalos",status:"da_iniziare",notes:"",color:"#7B5EC4"},
+    {id:"sm",name:"Pokémon Sun/Moon",gen:"GEN 7",place:"Alola",status:"da_iniziare",notes:"",color:"#E8942E"},
+    {id:"swsh",name:"Pokémon Sword/Shield",gen:"GEN 8",place:"Galar",status:"da_iniziare",notes:"",color:"#2FAE9E"},
+    {id:"sv",name:"Pokémon Scarlet/Violet",gen:"GEN 9",place:"Paldea",status:"da_iniziare",notes:"",color:"#C0392B"},
+    {id:"za",name:"Pokémon Legends: Z-A",gen:"GEN 9",place:"Lumiose (spin-off)",status:"completato",notes:"",color:"#8B3FD9"}
+  ];
+
+  var state = {
+    games: loadGames(),
+    view: "list",
+    query: "",
+    expanded: null,
+    dragIndex: null
+  };
+
+  function loadGames(){
+    try{
+      var raw = localStorage.getItem(LS_GAMES);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    }catch(e){}
+    return DEFAULT_GAMES.slice();
+  }
+  function saveGames(){
+    try{ localStorage.setItem(LS_GAMES, JSON.stringify(state.games)); }catch(e){}
+  }
+
+  function escapeHtml(s){
+    return (s||"").replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function highlight(text, q){
+    var escaped = escapeHtml(text);
+    if(!q) return escaped;
+    var idx = escaped.toLowerCase().indexOf(q.toLowerCase());
+    if(idx === -1) return escaped;
+    return escaped.slice(0,idx) + "<mark>" + escaped.slice(idx, idx+q.length) + "</mark>" + escaped.slice(idx+q.length);
+  }
+
+  // ---------- render ----------
+  function render(){
+    renderProgress();
+    if(state.view === "list") renderList(); else renderRoute();
+    document.getElementById("listView").style.display = state.view === "list" ? "" : "none";
+    document.getElementById("routeView").style.display = state.view === "route" ? "" : "none";
+  }
+
+  function renderProgress(){
+    var total = state.games.length;
+    var done = state.games.filter(function(g){return g.status==="completato";}).length;
+    var cur = state.games.filter(function(g){return g.status==="in_corso";}).length;
+    document.getElementById("doneCount").textContent = done;
+    document.getElementById("totalCount").textContent = total;
+    document.getElementById("barDone").style.width = (done/total*100)+"%";
+    document.getElementById("barCur").style.width = (cur/total*100)+"%";
+    document.getElementById("pctText").textContent = Math.round(done/total*100)+"%";
+  }
+
+  function matchesQuery(g, q){
+    if(!q) return true;
+    q = q.toLowerCase();
+    return (g.name+" "+g.place+" "+g.gen+" "+g.notes).toLowerCase().indexOf(q) !== -1;
+  }
+
+  function renderList(){
+    var container = document.getElementById("listView");
+    var q = state.query;
+    var visible = state.games.filter(function(g){return matchesQuery(g,q);});
+
+    var note = document.getElementById("searchNote");
+    if(q){
+      note.style.display = "block";
+      note.textContent = visible.length + " risultat" + (visible.length===1?"o":"i") + " per \"" + q + "\"";
+    } else { note.style.display = "none"; }
+
+    if(!visible.length){
+      container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">Nessun gioco trovato.</p>';
+      return;
+    }
+
+    container.innerHTML = visible.map(function(g){
+      var index = state.games.indexOf(g);
+      var expanded = state.expanded === g.id;
+      var statusBtns = Object.keys(STATUS_META).map(function(key){
+        var m = STATUS_META[key];
+        var active = g.status === key;
+        return '<button class="status-btn'+(active?' active':'')+'" data-action="status" data-id="'+g.id+'" data-status="'+key+'" style="'+(active?('border-color:'+m.color+';background:'+m.color+'22;color:'+m.color+';'):'')+'">'+m.label+'</button>';
+      }).join("");
+
+      return '<div class="card" data-id="'+g.id+'" data-index="'+index+'" style="border-left:4px solid '+g.color+';">'
+        + '<div class="card-inner">'
+          + '<button class="grip" data-action="grip" aria-label="Trascina per riordinare">⠿</button>'
+          + '<div class="card-body">'
+            + '<div class="badges">'
+              + '<span class="gen-badge" style="color:'+g.color+';background:'+g.color+'22;">'+g.gen+'</span>'
+              + '<span class="place">'+highlight(g.place,q)+'</span>'
+            + '</div>'
+            + '<h3 class="game-name">'+highlight(g.name,q)+'</h3>'
+            + '<div class="status-row">'+statusBtns+'</div>'
+            + '<button class="notes-toggle'+(expanded?' open':'')+'" data-action="toggle-notes" data-id="'+g.id+'">'
+              + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>'
+              + (g.notes ? "Note" : "Aggiungi nota")
+            + '</button>'
+            + '<textarea class="notes-area'+(expanded?' open':'')+'" data-action="notes" data-id="'+g.id+'" rows="3" placeholder="Es. livello squadra, punto della storia, impressioni...">'+escapeHtml(g.notes)+'</textarea>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join("");
+  }
+
+  function renderRoute(){
+    var container = document.getElementById("routeView");
+    var games = state.games;
+    var rowHeight = 132;
+    var totalHeight = games.length*rowHeight + 40;
+    container.style.height = totalHeight+"px";
+
+    var points = games.map(function(g,i){ return {x: i%2===0?25:75, y: i*rowHeight+50}; });
+    var pathD = "M "+points[0].x+" "+points[0].y;
+    for(var i=1;i<points.length;i++){
+      var prev = points[i-1], cur = points[i];
+      pathD += " C "+prev.x+" "+(prev.y+rowHeight/2)+", "+cur.x+" "+(cur.y-rowHeight/2)+", "+cur.x+" "+cur.y;
+    }
+    var segs = "";
+    for(var i=1;i<points.length;i++){
+      var prev = points[i-1], cur = points[i];
+      var sourceGame = games[i-1];
+      var done = sourceGame.status === "completato";
+      var seg = "M "+prev.x+" "+prev.y+" C "+prev.x+" "+(prev.y+rowHeight/2)+", "+cur.x+" "+(cur.y-rowHeight/2)+", "+cur.x+" "+cur.y;
+      segs += '<path d="'+seg+'" fill="none" stroke="'+(done?sourceGame.color:'transparent')+'" stroke-width="1.6" stroke-dasharray="'+(done?'0':'3,3')+'"/>';
+    }
+
+    var svg = '<svg viewBox="0 0 100 '+totalHeight+'" preserveAspectRatio="none" width="100%" height="'+totalHeight+'" style="position:absolute;top:0;left:0;">'
+      + '<path d="'+pathD+'" fill="none" stroke="#2a2a30" stroke-width="1.6"/>'
+      + segs
+      + '</svg>';
+
+    var markers = games.map(function(g,i){
+      var p = points[i];
+      var meta = STATUS_META[g.status];
+      var onLeft = p.x === 25;
+      var iconHtml = g.status==="completato"
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#141417" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>'
+        : g.status==="in_corso"
+          ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="'+g.color+'" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>'
+          : '<span style="width:6px;height:6px;border-radius:50%;background:var(--border);display:inline-block;"></span>';
+
+      return '<div style="position:absolute;top:'+(p.y-34)+'px;left:0;right:0;height:'+rowHeight+'px;">'
+        + '<div class="route-marker'+(g.status==="in_corso"?" pulse":"")+'" style="left:'+p.x+'%;background:'+(g.status==="completato"?g.color:"var(--card)")+';border:2px solid '+(g.status==="da_iniziare"?"var(--border)":g.color)+';">'+iconHtml+'</div>'
+        + '<div class="route-label" style="'+(onLeft? ('left:36%;right:2%;text-align:left;') : ('right:36%;left:2%;text-align:right;'))+'">'
+          + '<div class="route-gen" style="color:'+g.color+';">'+g.gen+' · '+escapeHtml(g.place)+'</div>'
+          + '<div class="route-name">'+escapeHtml(g.name)+'</div>'
+          + '<div class="route-status" style="color:'+meta.color+';">'+meta.label+'</div>'
+          + (g.notes ? '<div class="route-notes">'+escapeHtml(g.notes)+'</div>' : '')
+        + '</div>'
+      + '</div>';
+    }).join("");
+
+    container.innerHTML = svg + markers;
+  }
+
+  // ---------- events: tabs, search ----------
+  document.querySelectorAll(".tab-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".tab-btn").forEach(function(b){b.classList.remove("active");});
+      btn.classList.add("active");
+      state.view = btn.getAttribute("data-tab");
+      render();
+    });
+  });
+
+  var searchInput = document.getElementById("searchInput");
+  var searchClear = document.getElementById("searchClear");
+  searchInput.addEventListener("input", function(){
+    state.query = searchInput.value.trim();
+    searchClear.style.display = state.query ? "block" : "none";
+    if(state.view !== "list"){
+      state.view = "list";
+      document.querySelectorAll(".tab-btn").forEach(function(b){b.classList.toggle("active", b.getAttribute("data-tab")==="list");});
+    }
+    render();
+  });
+  searchClear.addEventListener("click", function(){
+    searchInput.value = ""; state.query = ""; searchClear.style.display="none"; render();
+  });
+
+  // ---------- events: list interactions (delegation) ----------
+  document.getElementById("listView").addEventListener("click", function(e){
+    var statusBtn = e.target.closest('[data-action="status"]');
+    if(statusBtn){
+      var id = statusBtn.getAttribute("data-id");
+      var status = statusBtn.getAttribute("data-status");
+      var g = state.games.find(function(x){return x.id===id;});
+      if(g){ g.status = status; saveGames(); render(); }
+      return;
+    }
+    var toggleBtn = e.target.closest('[data-action="toggle-notes"]');
+    if(toggleBtn){
+      var id2 = toggleBtn.getAttribute("data-id");
+      state.expanded = state.expanded === id2 ? null : id2;
+      render();
+      return;
+    }
+  });
+  document.getElementById("listView").addEventListener("change", function(e){
+    if(e.target.matches('[data-action="notes"]')){
+      var id = e.target.getAttribute("data-id");
+      var g = state.games.find(function(x){return x.id===id;});
+      if(g){ g.notes = e.target.value; saveGames(); }
+    }
+  });
+
+  // ---------- drag reorder ----------
+  document.getElementById("listView").addEventListener("pointerdown", function(e){
+    var grip = e.target.closest('[data-action="grip"]');
+    if(!grip) return;
+    e.preventDefault();
+    var card = grip.closest(".card");
+    state.dragIndex = parseInt(card.getAttribute("data-index"), 10);
+    card.classList.add("dragging");
+
+    function onMove(ev){
+      var y = ev.clientY;
+      var cards = document.querySelectorAll("#listView .card");
+      for(var i=0;i<cards.length;i++){
+        var rect = cards[i].getBoundingClientRect();
+        if(y > rect.top && y < rect.bottom){
+          var targetId = cards[i].getAttribute("data-id");
+          var targetIndex = state.games.findIndex(function(g){return g.id===targetId;});
+          if(targetIndex !== -1 && targetIndex !== state.dragIndex){
+            var arr = state.games;
+            var moved = arr.splice(state.dragIndex,1)[0];
+            arr.splice(targetIndex,0,moved);
+            state.dragIndex = targetIndex;
+            renderList();
+            var newCard = document.querySelector('#listView .card[data-id="'+moved.id+'"]');
+            if(newCard) newCard.classList.add("dragging");
+          }
+          break;
+        }
+      }
+    }
+    function onUp(){
+      state.dragIndex = null;
+      saveGames();
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      render();
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  });
+
+  // ---------- reset ----------
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(!confirm("Ripristinare l'ordine e lo stato iniziale della maratona?")) return;
+    state.games = DEFAULT_GAMES.map(function(g){return Object.assign({},g);});
+    saveGames();
+    render();
+  });
+
+  // ================= GITHUB GIST SYNC =================
+  var API = "https://api.github.com";
+  var syncStatusEl = document.getElementById("syncStatus");
+  var toastEl = document.getElementById("toast");
+
+  function setStatus(kind){
+    syncStatusEl.className = "sync-status" + (kind? " "+kind : "");
+  }
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ toastEl.classList.remove("show"); }, 2600);
+  }
+  function getToken(){ try{ return localStorage.getItem(LS_TOKEN) || ""; }catch(e){ return ""; } }
+  function setToken(t){ try{ localStorage.setItem(LS_TOKEN, t); }catch(e){} }
+  function clearToken(){ try{ localStorage.removeItem(LS_TOKEN); localStorage.removeItem(LS_GIST_ID); }catch(e){} }
+  function getGistId(){ try{ return localStorage.getItem(LS_GIST_ID) || ""; }catch(e){ return ""; } }
+  function setGistId(id){ try{ localStorage.setItem(LS_GIST_ID, id); }catch(e){} }
+
+  function ghHeaders(){
+    var t = getToken();
+    return {
+      "Authorization": "token " + t,
+      "Accept": "application/vnd.github+json"
+    };
+  }
+
+  // find an existing gist containing our filename, across the user's gists
+  function findExistingGist(){
+    return fetch(API + "/gists?per_page=100", {headers: ghHeaders()})
+      .then(function(res){
+        if(!res.ok) throw new Error("Impossibile leggere i Gist ("+res.status+")");
+        return res.json();
+      })
+      .then(function(gists){
+        for(var i=0;i<gists.length;i++){
+          if(gists[i].files && gists[i].files[GIST_FILENAME]) return gists[i].id;
+        }
+        return null;
+      });
+  }
+
+  function createGist(){
+    var body = {
+      description: "Dati - Maratona Pokémon (app)",
+      public: false,
+      files: {}
+    };
+    body.files[GIST_FILENAME] = { content: JSON.stringify(state.games, null, 2) };
+    return fetch(API + "/gists", {
+      method: "POST",
+      headers: Object.assign({"Content-Type":"application/json"}, ghHeaders()),
+      body: JSON.stringify(body)
+    }).then(function(res){
+      if(!res.ok) throw new Error("Creazione Gist fallita ("+res.status+")");
+      return res.json();
+    }).then(function(gist){
+      setGistId(gist.id);
+      return gist.id;
+    });
+  }
+
+  function ensureGistId(){
+    var existing = getGistId();
+    if(existing) return Promise.resolve(existing);
+    return findExistingGist().then(function(id){
+      if(id){ setGistId(id); return id; }
+      return createGist();
+    });
+  }
+
+  function pushData(){
+    if(!getToken()){ openModal(); return; }
+    setStatus("busy");
+    ensureGistId().then(function(id){
+      var body = { files: {} };
+      body.files[GIST_FILENAME] = { content: JSON.stringify(state.games, null, 2) };
+      return fetch(API + "/gists/" + id, {
+        method: "PATCH",
+        headers: Object.assign({"Content-Type":"application/json"}, ghHeaders()),
+        body: JSON.stringify(body)
+      });
+    }).then(function(res){
+      if(!res.ok) throw new Error("Push fallito ("+res.status+")");
+      setStatus("ok");
+      showToast("Dati caricati su GitHub ✓");
+    }).catch(function(err){
+      setStatus("err");
+      showToast(err.message || "Errore durante il push");
+    });
+  }
+
+  function pullData(){
+    if(!getToken()){ openModal(); return; }
+    setStatus("busy");
+    ensureGistId().then(function(id){
+      return fetch(API + "/gists/" + id, {headers: ghHeaders()});
+    }).then(function(res){
+      if(!res.ok) throw new Error("Pull fallito ("+res.status+")");
+      return res.json();
+    }).then(function(gist){
+      var file = gist.files && gist.files[GIST_FILENAME];
+      if(!file){ throw new Error("File non trovato nel Gist"); }
+      var content = file.content;
+      // Gists truncate large content and require a raw_url fetch in that case
+      var p = file.truncated
+        ? fetch(file.raw_url).then(function(r){ return r.text(); })
+        : Promise.resolve(content);
+      return p;
+    }).then(function(text){
+      var parsed = JSON.parse(text);
+      if(!Array.isArray(parsed)) throw new Error("Formato dati non valido");
+      state.games = parsed;
+      saveGames();
+      render();
+      setStatus("ok");
+      showToast("Dati scaricati da GitHub ✓");
+    }).catch(function(err){
+      setStatus("err");
+      showToast(err.message || "Errore durante il pull");
+    });
+  }
+
+  document.getElementById("pushBtn").addEventListener("click", pushData);
+  document.getElementById("pullBtn").addEventListener("click", pullData);
+
+  // ---------- setup modal ----------
+  var modalBackdrop = document.getElementById("modalBackdrop");
+  var tokenInput = document.getElementById("tokenInput");
+
+  function openModal(){
+    tokenInput.value = getToken();
+    modalBackdrop.classList.add("open");
+  }
+  function closeModal(){ modalBackdrop.classList.remove("open"); }
+
+  document.getElementById("setupBtn").addEventListener("click", openModal);
+  document.getElementById("modalClose").addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", function(e){ if(e.target === modalBackdrop) closeModal(); });
+
+  document.getElementById("tokenSaveBtn").addEventListener("click", function(){
+    var t = tokenInput.value.trim();
+    if(!t){ showToast("Inserisci un token valido"); return; }
+    setToken(t);
+    closeModal();
+    setStatus("busy");
+    ensureGistId().then(function(){
+      setStatus("ok");
+      showToast("Collegato a GitHub ✓");
+    }).catch(function(err){
+      setStatus("err");
+      showToast(err.message || "Token non valido");
+    });
+  });
+  document.getElementById("tokenClearBtn").addEventListener("click", function(){
+    clearToken();
+    tokenInput.value = "";
+    setStatus("");
+    showToast("Token rimosso");
+    closeModal();
+  });
+
+  // if a token is already saved, show a neutral/ok dot at boot without calling the API
+  if(getToken()) setStatus("ok"); else setStatus("");
+
+  // ---------- offline service worker (best effort, inline) ----------
+  if("serviceWorker" in navigator){
+    try{
+      var swCode = "self.addEventListener('install',function(e){self.skipWaiting();});"
+        + "self.addEventListener('activate',function(e){self.clients.claim();});"
+        + "self.addEventListener('fetch',function(e){"
+        + "e.respondWith(caches.open('pkmn-marathon-v1').then(function(cache){"
+        + "return cache.match(e.request).then(function(resp){"
+        + "var fetchPromise = fetch(e.request).then(function(networkResp){"
+        + "if(e.request.method==='GET' && networkResp.ok){cache.put(e.request, networkResp.clone());}"
+        + "return networkResp;"
+        + "}).catch(function(){return resp;});"
+        + "return resp || fetchPromise;"
+        + "}));}));"
+        + "});";
+      var blob = new Blob([swCode], {type: "application/javascript"});
+      var swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(function(){});
+    }catch(e){}
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
