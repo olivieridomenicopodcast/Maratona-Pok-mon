@@ -125,6 +125,36 @@
   .btn-ghost{background:transparent;color:var(--muted);}
   .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);cursor:pointer;}
   .modal{position:relative;}
+  .card-actions{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0;}
+  .icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;border-radius:6px;line-height:0;}
+  .icon-btn:active{background:#2c2c33;color:var(--text);}
+  .icon-btn:disabled{opacity:.25;cursor:default;}
+  .platform-line{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text);background:#17171b;
+    border:1px solid var(--border);border-radius:999px;padding:4px 10px;margin:-2px 0 10px;cursor:pointer;max-width:100%;}
+  .platform-line.empty{color:var(--muted);border-style:dashed;}
+  .platform-line b{font-weight:600;}
+  .platform-line span.det{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .route-platform{font-size:10px;color:var(--muted);margin-top:2px;}
+  .add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:6px;padding:12px;
+    background:transparent;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;}
+  .add-btn:active{background:var(--card);color:var(--text);}
+  .edit-modal{max-height:92vh;overflow-y:auto;}
+  .edit-modal .field{margin-bottom:14px;}
+  .edit-modal .field label{margin-bottom:6px;}
+  .edit-modal input[type=text],.edit-modal textarea{width:100%;background:#17171b;border:1px solid var(--border);
+    border-radius:8px;color:var(--text);font-size:14px;padding:10px;font-family:var(--body);margin:0;}
+  .edit-modal textarea{resize:vertical;}
+  .edit-modal input:focus,.edit-modal textarea:focus{outline:2px solid var(--red);outline-offset:1px;}
+  .row2{display:flex;gap:10px;} .row2 .field{flex:1;min-width:0;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .chip{font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;}
+  .chip.active{border-color:var(--red);background:rgba(232,56,79,.14);color:var(--text);font-weight:600;}
+  .color-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+  .swatch.active{border-color:var(--text);}
+  input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;}
+  .gen-preview{display:inline-block;margin-top:6px;}
+  .btn-danger{background:transparent;color:var(--red);}
   .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#26262c;border:1px solid var(--border);
     color:var(--text);font-size:12px;padding:8px 14px;border-radius:999px;z-index:110;opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;}
   .toast.show{opacity:1;bottom:88px;}
@@ -169,6 +199,8 @@
   <div id="listView"></div>
   <div id="routeView" class="route-wrap" style="display:none;"></div>
 
+  <button class="add-btn" id="addBtn">＋ Aggiungi gioco</button>
+
   <button class="reset-btn" id="resetBtn">↺ Ripristina progressi</button>
 </div>
 
@@ -193,6 +225,47 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="editBackdrop">
+  <div class="modal edit-modal">
+    <button class="modal-close" id="editClose">✕</button>
+    <h2 id="editTitle">Modifica gioco</h2>
+    <p>Tutto è modificabile. Il badge GEN si illumina del colore scelto.</p>
+    <div class="field">
+      <label for="fName">Titolo</label>
+      <input type="text" id="fName" placeholder="Es. Pokémon Platinum">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="fGen">Generazione</label>
+        <input type="text" id="fGen" placeholder="Es. GEN 4 oppure 4">
+      </div>
+      <div class="field">
+        <label for="fPlace">Regione / sottotitolo</label>
+        <input type="text" id="fPlace" placeholder="Es. Sinnoh">
+      </div>
+    </div>
+    <div class="field">
+      <label>Colore</label>
+      <div class="color-row" id="fColorRow"></div>
+      <span class="gen-badge gen-preview" id="genPreview"></span>
+    </div>
+    <div class="field">
+      <label>Come lo gioco</label>
+      <div class="chips" id="fPlatChips"></div>
+      <input type="text" id="fPlatNote" placeholder="Dettaglio: es. 3DS di Erika, DeSmuME su PC, me lo presta Rodolfo...">
+    </div>
+    <div class="field">
+      <label for="fNotes">Note</label>
+      <textarea id="fNotes" rows="3" placeholder="Livello squadra, punto della storia..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="editDelete">Elimina</button>
+      <button class="btn-ghost" id="editCancel">Annulla</button>
+      <button class="btn-primary" id="editSave">Salva</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -210,6 +283,15 @@
     in_corso:    {label:"In corso",    color:"var(--progress)"},
     completato:  {label:"Completato",  color:"var(--done)"}
   };
+
+  var PLATFORMS = {
+    mia:     "Mie console",
+    altra:   "Altra console",
+    prestito:"Me lo presta qualcuno",
+    emu:     "Emulatore",
+    altro:   "Altro"
+  };
+  var SWATCHES = ["#E8384F","#D4A93B","#4C8FD9","#3FA35E","#9C7A4E","#8A8894","#7B5EC4","#E8942E","#2FAE9E","#C0392B","#8B3FD9","#E86FA8"];
 
   var DEFAULT_GAMES = [
     {id:"firered",name:"Pokémon FireRed",gen:"GEN 1",place:"Kanto (remake)",status:"completato",notes:"",color:"#E8384F"},
@@ -238,11 +320,31 @@
       var raw = localStorage.getItem(LS_GAMES);
       if(raw){
         var parsed = JSON.parse(raw);
-        if(Array.isArray(parsed) && parsed.length) return parsed;
+        if(Array.isArray(parsed) && parsed.length) return normalizeAll(parsed);
       }
     }catch(e){}
-    return DEFAULT_GAMES.slice();
+    return normalizeAll(DEFAULT_GAMES);
   }
+  function normalizeGen(v){
+    v = String(v==null?"":v).trim();
+    if(/^\d+$/.test(v)) return "GEN "+v;
+    return v.toUpperCase();
+  }
+  function normalizeGame(g){
+    g = g || {};
+    return {
+      id: String(g.id || ("g"+Date.now().toString(36)+Math.random().toString(36).slice(2,6))),
+      name: String(g.name||""),
+      gen: normalizeGen(g.gen),
+      place: String(g.place||""),
+      status: STATUS_META[g.status] ? g.status : "da_iniziare",
+      notes: String(g.notes||""),
+      color: /^#[0-9a-fA-F]{6}$/.test(g.color||"") ? g.color : "#8A8894",
+      platform: PLATFORMS[g.platform] ? g.platform : "",
+      platformNote: String(g.platformNote||"")
+    };
+  }
+  function normalizeAll(arr){ return arr.map(normalizeGame); }
   function saveGames(){
     try{ localStorage.setItem(LS_GAMES, JSON.stringify(state.games)); }catch(e){}
   }
@@ -270,6 +372,11 @@
 
   function renderProgress(){
     var total = state.games.length;
+    if(!total){
+      document.getElementById("doneCount").textContent = 0; document.getElementById("totalCount").textContent = 0;
+      document.getElementById("barDone").style.width="0"; document.getElementById("barCur").style.width="0";
+      document.getElementById("pctText").textContent="0%"; return;
+    }
     var done = state.games.filter(function(g){return g.status==="completato";}).length;
     var cur = state.games.filter(function(g){return g.status==="in_corso";}).length;
     document.getElementById("doneCount").textContent = done;
@@ -282,7 +389,7 @@
   function matchesQuery(g, q){
     if(!q) return true;
     q = q.toLowerCase();
-    return (g.name+" "+g.place+" "+g.gen+" "+g.notes).toLowerCase().indexOf(q) !== -1;
+    return (g.name+" "+g.place+" "+g.gen+" "+g.notes+" "+(PLATFORMS[g.platform]||"")+" "+g.platformNote).toLowerCase().indexOf(q) !== -1;
   }
 
   function renderList(){
@@ -297,7 +404,7 @@
     } else { note.style.display = "none"; }
 
     if(!visible.length){
-      container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">Nessun gioco trovato.</p>';
+      container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">'+(state.games.length?'Nessun gioco trovato.':'Nessun gioco. Aggiungine uno!')+'</p>';
       return;
     }
 
@@ -307,24 +414,38 @@
       var statusBtns = Object.keys(STATUS_META).map(function(key){
         var m = STATUS_META[key];
         var active = g.status === key;
-        return '<button class="status-btn'+(active?' active':'')+'" data-action="status" data-id="'+g.id+'" data-status="'+key+'" style="'+(active?('border-color:'+m.color+';background:'+m.color+'22;color:'+m.color+';'):'')+'">'+m.label+'</button>';
+        return '<button class="status-btn'+(active?' active':'')+'" data-action="status" data-id="'+escapeHtml(g.id)+'" data-status="'+key+'" style="'+(active?('border-color:'+m.color+';background:'+m.color+'22;color:'+m.color+';'):'')+'">'+m.label+'</button>';
       }).join("");
 
-      return '<div class="card" data-id="'+g.id+'" data-index="'+index+'" style="border-left:4px solid '+g.color+';">'
+      var gid = escapeHtml(g.id);
+      var hasPlat = g.platform || g.platformNote;
+      var platHtml = '<button class="platform-line'+(hasPlat?'':' empty')+'" data-action="edit" data-id="'+gid+'">🎮 '
+        + (hasPlat
+            ? (g.platform?'<b>'+escapeHtml(PLATFORMS[g.platform])+'</b>':'')+(g.platformNote?'<span class="det">'+(g.platform?'· ':'')+highlight(g.platformNote,q)+'</span>':'')
+            : 'Come lo gioco?')
+        + '</button>';
+      var canMove = !q;
+      return '<div class="card" data-id="'+gid+'" data-index="'+index+'" style="border-left:4px solid '+g.color+';">'
         + '<div class="card-inner">'
-          + '<button class="grip" data-action="grip" aria-label="Trascina per riordinare">⠿</button>'
+          + '<div class="card-actions">'
+            + '<button class="icon-btn" data-action="up" data-id="'+gid+'" aria-label="Sposta su"'+((!canMove||index===0)?' disabled':'')+'><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 15l6-6 6 6"/></svg></button>'
+            + '<button class="grip" data-action="grip" aria-label="Trascina per riordinare">⠿</button>'
+            + '<button class="icon-btn" data-action="down" data-id="'+gid+'" aria-label="Sposta giù"'+((!canMove||index===state.games.length-1)?' disabled':'')+'><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>'
+          + '</div>'
           + '<div class="card-body">'
             + '<div class="badges">'
-              + '<span class="gen-badge" style="color:'+g.color+';background:'+g.color+'22;">'+g.gen+'</span>'
+              + (g.gen?'<span class="gen-badge" style="color:'+g.color+';background:'+g.color+'22;">'+highlight(g.gen,q)+'</span>':'')
               + '<span class="place">'+highlight(g.place,q)+'</span>'
+            + '<button class="icon-btn" data-action="edit" data-id="'+gid+'" aria-label="Modifica" style="margin-left:auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>'
             + '</div>'
             + '<h3 class="game-name">'+highlight(g.name,q)+'</h3>'
+            + platHtml
             + '<div class="status-row">'+statusBtns+'</div>'
-            + '<button class="notes-toggle'+(expanded?' open':'')+'" data-action="toggle-notes" data-id="'+g.id+'">'
+            + '<button class="notes-toggle'+(expanded?' open':'')+'" data-action="toggle-notes" data-id="'+escapeHtml(g.id)+'">'
               + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>'
               + (g.notes ? "Note" : "Aggiungi nota")
             + '</button>'
-            + '<textarea class="notes-area'+(expanded?' open':'')+'" data-action="notes" data-id="'+g.id+'" rows="3" placeholder="Es. livello squadra, punto della storia, impressioni...">'+escapeHtml(g.notes)+'</textarea>'
+            + '<textarea class="notes-area'+(expanded?' open':'')+'" data-action="notes" data-id="'+escapeHtml(g.id)+'" rows="3" placeholder="Es. livello squadra, punto della storia, impressioni...">'+escapeHtml(g.notes)+'</textarea>'
           + '</div>'
         + '</div>'
       + '</div>';
@@ -338,6 +459,7 @@
     var totalHeight = games.length*rowHeight + 40;
     container.style.height = totalHeight+"px";
 
+    if(!games.length){ container.style.height="auto"; container.innerHTML='<p style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">Nessun gioco.</p>'; return; }
     var points = games.map(function(g,i){ return {x: i%2===0?25:75, y: i*rowHeight+50}; });
     var pathD = "M "+points[0].x+" "+points[0].y;
     for(var i=1;i<points.length;i++){
@@ -371,9 +493,10 @@
       return '<div style="position:absolute;top:'+(p.y-34)+'px;left:0;right:0;height:'+rowHeight+'px;">'
         + '<div class="route-marker'+(g.status==="in_corso"?" pulse":"")+'" style="left:'+p.x+'%;background:'+(g.status==="completato"?g.color:"var(--card)")+';border:2px solid '+(g.status==="da_iniziare"?"var(--border)":g.color)+';">'+iconHtml+'</div>'
         + '<div class="route-label" style="'+(onLeft? ('left:36%;right:2%;text-align:left;') : ('right:36%;left:2%;text-align:right;'))+'">'
-          + '<div class="route-gen" style="color:'+g.color+';">'+g.gen+' · '+escapeHtml(g.place)+'</div>'
+          + '<div class="route-gen" style="color:'+g.color+';">'+escapeHtml([g.gen,g.place].filter(Boolean).join(' · '))+'</div>'
           + '<div class="route-name">'+escapeHtml(g.name)+'</div>'
           + '<div class="route-status" style="color:'+meta.color+';">'+meta.label+'</div>'
+          + ((g.platform||g.platformNote) ? '<div class="route-platform">🎮 '+escapeHtml([g.platform?PLATFORMS[g.platform]:'',g.platformNote].filter(Boolean).join(' · '))+'</div>' : '')
           + (g.notes ? '<div class="route-notes">'+escapeHtml(g.notes)+'</div>' : '')
         + '</div>'
       + '</div>';
@@ -415,6 +538,19 @@
       var status = statusBtn.getAttribute("data-status");
       var g = state.games.find(function(x){return x.id===id;});
       if(g){ g.status = status; saveGames(); render(); }
+      return;
+    }
+    var editBtn = e.target.closest('[data-action="edit"]');
+    if(editBtn){ openEdit(editBtn.getAttribute("data-id")); return; }
+    var moveBtn = e.target.closest('[data-action="up"],[data-action="down"]');
+    if(moveBtn && !moveBtn.disabled){
+      var mid = moveBtn.getAttribute("data-id");
+      var mi = state.games.findIndex(function(x){return x.id===mid;});
+      var ni = mi + (moveBtn.getAttribute("data-action")==="up" ? -1 : 1);
+      if(mi !== -1 && ni >= 0 && ni < state.games.length){
+        var tmp = state.games[mi]; state.games[mi] = state.games[ni]; state.games[ni] = tmp;
+        saveGames(); render();
+      }
       return;
     }
     var toggleBtn = e.target.closest('[data-action="toggle-notes"]');
@@ -477,9 +613,91 @@
   // ---------- reset ----------
   document.getElementById("resetBtn").addEventListener("click", function(){
     if(!confirm("Ripristinare l'ordine e lo stato iniziale della maratona?")) return;
-    state.games = DEFAULT_GAMES.map(function(g){return Object.assign({},g);});
+    state.games = normalizeAll(DEFAULT_GAMES);
     saveGames();
     render();
+  });
+
+  // ---------- add / edit modal ----------
+  var editBackdrop = document.getElementById("editBackdrop");
+  var fName = document.getElementById("fName"), fGen = document.getElementById("fGen"),
+      fPlace = document.getElementById("fPlace"), fPlatNote = document.getElementById("fPlatNote"),
+      fNotes = document.getElementById("fNotes"), genPreview = document.getElementById("genPreview");
+  var edit = null; // {id|null, color, platform}
+
+  function refreshPreview(){
+    var gen = normalizeGen(fGen.value) || "GEN ?";
+    genPreview.textContent = gen;
+    genPreview.style.color = edit.color;
+    genPreview.style.background = edit.color + "22";
+  }
+  function renderEditControls(){
+    document.getElementById("fPlatChips").innerHTML = Object.keys(PLATFORMS).map(function(k){
+      return '<button type="button" class="chip'+(edit.platform===k?' active':'')+'" data-plat="'+k+'">'+PLATFORMS[k]+'</button>';
+    }).join("");
+    var row = SWATCHES.map(function(c){
+      return '<button type="button" class="swatch'+(edit.color.toLowerCase()===c.toLowerCase()?' active':'')+'" data-color="'+c+'" style="background:'+c+';" aria-label="Colore '+c+'"></button>';
+    }).join("") + '<input type="color" id="fColorPick" value="'+edit.color+'" aria-label="Colore personalizzato">';
+    document.getElementById("fColorRow").innerHTML = row;
+    refreshPreview();
+  }
+  function openEdit(id){
+    var g = id ? state.games.find(function(x){return x.id===id;}) : null;
+    if(id && !g) return;
+    edit = { id: g ? g.id : null, color: g ? g.color : SWATCHES[0], platform: g ? g.platform : "" };
+    document.getElementById("editTitle").textContent = g ? "Modifica gioco" : "Nuovo gioco";
+    document.getElementById("editDelete").style.display = g ? "" : "none";
+    fName.value = g ? g.name : ""; fGen.value = g ? g.gen : ""; fPlace.value = g ? g.place : "";
+    fPlatNote.value = g ? g.platformNote : ""; fNotes.value = g ? g.notes : "";
+    renderEditControls();
+    editBackdrop.classList.add("open");
+    if(!g) setTimeout(function(){ fName.focus(); }, 50);
+  }
+  function closeEdit(){ editBackdrop.classList.remove("open"); edit = null; }
+
+  document.getElementById("fPlatChips").addEventListener("click", function(e){
+    var b = e.target.closest("[data-plat]"); if(!b) return;
+    var k = b.getAttribute("data-plat");
+    edit.platform = edit.platform === k ? "" : k;
+    renderEditControls();
+  });
+  document.getElementById("fColorRow").addEventListener("click", function(e){
+    var b = e.target.closest("[data-color]"); if(!b) return;
+    edit.color = b.getAttribute("data-color"); renderEditControls();
+  });
+  document.getElementById("fColorRow").addEventListener("input", function(e){
+    if(e.target.id === "fColorPick"){ edit.color = e.target.value; refreshPreview(); }
+  });
+  fGen.addEventListener("input", function(){ if(edit) refreshPreview(); });
+
+  document.getElementById("addBtn").addEventListener("click", function(){ openEdit(null); });
+  document.getElementById("editClose").addEventListener("click", closeEdit);
+  document.getElementById("editCancel").addEventListener("click", closeEdit);
+  editBackdrop.addEventListener("click", function(e){ if(e.target === editBackdrop) closeEdit(); });
+
+  document.getElementById("editSave").addEventListener("click", function(){
+    var name = fName.value.trim();
+    if(!name){ showToast("Inserisci un titolo"); fName.focus(); return; }
+    var data = {
+      name: name, gen: normalizeGen(fGen.value), place: fPlace.value.trim(),
+      color: edit.color, platform: edit.platform, platformNote: fPlatNote.value.trim(), notes: fNotes.value
+    };
+    if(edit.id){
+      var g = state.games.find(function(x){return x.id===edit.id;});
+      if(g) Object.assign(g, data);
+    } else {
+      state.games.push(normalizeGame(Object.assign({status:"da_iniziare"}, data)));
+    }
+    saveGames(); closeEdit(); render();
+    showToast("Salvato ✓");
+  });
+  document.getElementById("editDelete").addEventListener("click", function(){
+    if(!edit || !edit.id) return;
+    var g = state.games.find(function(x){return x.id===edit.id;});
+    if(!g || !confirm('Eliminare "'+g.name+'"?')) return;
+    state.games = state.games.filter(function(x){return x.id!==edit.id;});
+    saveGames(); closeEdit(); render();
+    showToast("Gioco eliminato");
   });
 
   // ================= GITHUB GIST SYNC =================
@@ -595,7 +813,7 @@
     }).then(function(text){
       var parsed = JSON.parse(text);
       if(!Array.isArray(parsed)) throw new Error("Formato dati non valido");
-      state.games = parsed;
+      state.games = normalizeAll(parsed);
       saveGames();
       render();
       setStatus("ok");
